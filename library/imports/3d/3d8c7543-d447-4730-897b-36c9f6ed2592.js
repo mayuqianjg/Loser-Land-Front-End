@@ -66,29 +66,28 @@ var Welcome = /** @class */ (function (_super) {
     function Welcome() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.okt = 0;
+        _this.squid = 0;
+        _this.hep = 0;
+        _this.squidApproved = 0;
+        _this.hepApproved = 0;
+        _this.pool = 0;
         _this.address = '';
+        _this.username = '';
+        _this.bindAddress = '';
         _this.privateKey = '';
-        _this.newRegisterAddress = '0x76f099cd22E737FC38f17FA07aA95dACe8e53e4e';
-        _this.registerAddress = '0x5eFa33708a7688Fa116B6Cb3eC65D7fcE3c9f599';
-        _this.rogueLandAddress = '0xFDE9DAacCbA3D802BFCBAd54039A4B0DeAA48e85';
-        _this.accountInfo = null;
+        _this.hepAddress = '0xe7ccD9B99f9d2E436F0Dbf0C3EEda37B2A68085B';
+        _this.buildingAddress = '0x26d1e186e7A6b96D84A5F0BbB27226F3c80DEfD8';
+        _this.squidAddress = '0x7d94d8f87E4223459C4e2D5467f2a597a04352D6';
+        _this.rogueLandAddress = '0xb6AF53068D3137527eaf96E7f1c2504480945149';
         _this.provider = null;
         _this.wallet = null;
         _this.rogueLandContract = null;
-        _this.registerContract = null;
-        _this.balance = [0, 0];
-        _this.pendingRewards = [0, 0];
         _this.nameLabel = null;
         _this.infoLabel = null;
         _this.balanceLabel = null;
-        _this.recordLabel = null;
-        _this.chargeButton = null;
-        _this.tradeButton = null;
         _this.registerButton = null;
-        _this.giftButton = null;
-        _this.phoneEditbox = null;
-        _this.registerJson = null;
-        _this.newRegisterJson = null;
+        _this.approveButton = null;
+        _this.ERC20Json = null;
         _this.rogueLandJson = null;
         _this.punkJson = null;
         _this.accountPrefab = null;
@@ -96,6 +95,7 @@ var Welcome = /** @class */ (function (_super) {
         _this.rewardPrefab = null;
         _this.rankPrefab = null;
         _this.withdrawPrefab = null;
+        _this.idEditbox = null;
         return _this;
     }
     Welcome.prototype.startGame = function (e, msg) {
@@ -108,22 +108,27 @@ var Welcome = /** @class */ (function (_super) {
         this.address = walletData.address;
         this.privateKey = walletData.privateKey;
     };
-    Welcome.prototype.setInfoLabel = function (n) {
+    Welcome.prototype.setInfoLabel = function (total, dead) {
         var lang = cc.sys.localStorage.getItem('lang');
         if (lang === 'zh') {
-            this.infoLabel.string = "\u5F53\u524D\u8D5B\u5B63\uFF1AS1  \u62A5\u540D\u4EBA\u6570\uFF1A " + n + "/666";
+            //this.loserLabel.string = `存活: ${a}/333`
+            //this.cherryLabel.string = `死亡: ${b}/333`
+            this.infoLabel.string = "\u5F53\u524D\u8D5B\u5B63\uFF1AS2  \u5B58\u6D3B\uFF1A " + (total - dead) + "/666 \u6B7B\u4EA1\uFF1A" + dead;
         }
         else {
-            this.infoLabel.string = "Current Season: S1  Enrollment: " + n + "/666";
+            //this.loserLabel.string = `Live: ${a}/333`
+            //this.cherryLabel.string = `Dead: ${b}/333`
+            this.infoLabel.string = "Current Season: S2  Alive: " + (total - dead) + "/666 Dead: " + dead;
         }
     };
     Welcome.prototype.setBalanceLabel = function () {
         var lang = cc.sys.localStorage.getItem('lang');
+        this.balanceLabel.string = "OKT: " + this.okt + "  SQUID: " + this.squid + "  HEP: " + this.hep + "\n";
         if (lang === 'zh') {
-            this.balanceLabel.string = "\u884C\u52A8\u70B9: " + this.okt + "  \u79EF\u5206: " + Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(this.balance[0])) + "  UMG: " + Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(this.balance[1]));
+            this.balanceLabel.string += "\u6E38\u620F\u8FDB\u5EA6\uFF1A" + (6666 - this.pool) + "/6666";
         }
         else {
-            this.balanceLabel.string = "Action Points: " + this.okt + "  Points: " + Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(this.balance[0])) + "  UMG: " + Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(this.balance[1]));
+            this.balanceLabel.string += "Progress: " + (6666 - this.pool) + "/6666";
         }
     };
     Welcome.prototype.setRecordLabel = function (id, done) {
@@ -141,18 +146,18 @@ var Welcome = /** @class */ (function (_super) {
             }
         }
     };
-    Welcome.prototype.enrollGame = function () {
+    Welcome.prototype.enrollGame = function (e, msg) {
         return __awaiter(this, void 0, void 0, function () {
-            var rogueLandSigner, tx, e_1;
+            var id, rogueLandSigner, tx, e_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this.registerButton.interactable = false;
+                        id = (msg == 'random' ? 0 : Number(this.idEditbox.string));
                         rogueLandSigner = this.rogueLandContract.connect(this.wallet);
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, rogueLandSigner.register({ gasLimit: 300000 })];
+                        return [4 /*yield*/, rogueLandSigner.register(id)];
                     case 2:
                         tx = _a.sent();
                         return [3 /*break*/, 4];
@@ -160,56 +165,23 @@ var Welcome = /** @class */ (function (_super) {
                         e_1 = _a.sent();
                         cc.log(e_1);
                         return [3 /*break*/, 4];
-                    case 4:
-                        this.okt -= 2;
-                        this.setBalanceLabel();
-                        return [2 /*return*/];
+                    case 4: return [2 /*return*/];
                 }
             });
         });
     };
-    Welcome.prototype.getGift = function () {
-        var newDialog = cc.instantiate(this.rewardPrefab);
-        this.node.addChild(newDialog);
-        newDialog.setPosition(cc.v2(0, 0));
-        // 在对话框脚本组件上保存 Welcome 对象的引用
-        newDialog.getComponent('Rewards').welcome = this;
-        newDialog.getComponent('Rewards').setLabel(Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(this.pendingRewards[0])), Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(this.pendingRewards[1])));
-    };
-    Welcome.prototype.openWithdrawDialog = function () {
+    Welcome.prototype.setUserName = function (name) {
         return __awaiter(this, void 0, void 0, function () {
-            var registerContract, account, newDialog;
+            var rogueLandSigner, tx, e_2;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        registerContract = new ethers_umd_min_js_1.ethers.Contract(this.newRegisterAddress, this.newRegisterJson.json.abi, this.provider);
-                        return [4 /*yield*/, registerContract.accountInfo(this.address)];
-                    case 1:
-                        account = _a.sent();
-                        newDialog = cc.instantiate(this.withdrawPrefab);
-                        this.node.addChild(newDialog);
-                        newDialog.setPosition(cc.v2(0, 0));
-                        // 在对话框脚本组件上保存 Welcome 对象的引用
-                        newDialog.getComponent('Withdraw').welcome = this;
-                        newDialog.getComponent('Withdraw').setLabel(account.wallet, Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(this.balance[0])), Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(this.balance[1])));
-                        return [2 /*return*/];
-                }
-            });
-        });
-    };
-    Welcome.prototype.setUserName = function (name, email, wallet) {
-        return __awaiter(this, void 0, void 0, function () {
-            var registerContract, registerSigner, tx, e_2;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        cc.log(name, email, wallet);
-                        registerContract = new ethers_umd_min_js_1.ethers.Contract(this.newRegisterAddress, this.newRegisterJson.json.abi, this.provider);
-                        registerSigner = registerContract.connect(this.wallet);
+                        cc.log(name);
+                        rogueLandSigner = this.rogueLandContract.connect(this.wallet);
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, registerSigner.register(name, email, wallet)];
+                        return [4 /*yield*/, rogueLandSigner.setNickName(name)];
                     case 2:
                         tx = _a.sent();
                         return [3 /*break*/, 4];
@@ -217,100 +189,28 @@ var Welcome = /** @class */ (function (_super) {
                         e_2 = _a.sent();
                         cc.log(e_2);
                         return [3 /*break*/, 4];
-                    case 4:
-                        this.okt -= 3;
-                        this.setBalanceLabel();
-                        return [2 /*return*/];
-                }
-            });
-        });
-    };
-    Welcome.prototype.claimRewards = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var rogueLandSigner, tx, e_3;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        cc.log('claimLowb');
-                        this.balance = this.pendingRewards;
-                        rogueLandSigner = this.rogueLandContract.connect(this.wallet);
-                        _a.label = 1;
-                    case 1:
-                        _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, rogueLandSigner.claimRewards()];
-                    case 2:
-                        tx = _a.sent();
-                        return [3 /*break*/, 4];
-                    case 3:
-                        e_3 = _a.sent();
-                        cc.log(e_3);
-                        return [3 /*break*/, 4];
-                    case 4:
-                        this.okt -= 2;
-                        this.setBalanceLabel();
-                        return [2 /*return*/];
-                }
-            });
-        });
-    };
-    Welcome.prototype.charge = function () {
-        cc.log(this.phoneEditbox.string);
-        this.chargeButton.interactable = false;
-        this.withdraw(0, this.phoneEditbox.string);
-    };
-    Welcome.prototype.withdraw = function (id, kind) {
-        return __awaiter(this, void 0, void 0, function () {
-            var amount, registerSigner, tx, e_4;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        cc.log('withdraw', this.balance[id].toString());
-                        amount = '20000000000000000000000';
-                        if (kind == 0) {
-                            amount = this.balance[id].toString();
-                        }
-                        registerSigner = this.registerContract.connect(this.wallet);
-                        _a.label = 1;
-                    case 1:
-                        _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, registerSigner.use(id, kind, amount)];
-                    case 2:
-                        tx = _a.sent();
-                        return [3 /*break*/, 4];
-                    case 3:
-                        e_4 = _a.sent();
-                        cc.log(e_4);
-                        return [3 /*break*/, 4];
-                    case 4:
-                        if (kind == 0) {
-                            this.okt -= 2;
-                            this.setRecordLabel(0, false);
-                            this.balance[id] = 0;
-                            this.setBalanceLabel();
-                        }
-                        else {
-                            cc.director.loadScene("welcome");
-                        }
-                        return [2 /*return*/];
+                    case 4: return [2 /*return*/];
                 }
             });
         });
     };
     Welcome.prototype.getPunkInfo = function (id) {
         return __awaiter(this, void 0, void 0, function () {
-            var player, account;
+            var player, name;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this.rogueLandContract.punkMaster(id)];
                     case 1:
                         player = _a.sent();
-                        return [4 /*yield*/, this.registerContract.accountInfo(player)];
+                        return [4 /*yield*/, this.rogueLandContract.nickNameOf(player)];
                     case 2:
-                        account = _a.sent();
-                        if (account.name == "")
+                        name = _a.sent();
+                        if (player.slice(0, 6) == "0x0000")
+                            return [2 /*return*/, "DEAD"];
+                        else if (name == "")
                             return [2 /*return*/, player.slice(0, 6)];
                         else
-                            return [2 /*return*/, account.name];
+                            return [2 /*return*/, name];
                         return [2 /*return*/];
                 }
             });
@@ -335,10 +235,46 @@ var Welcome = /** @class */ (function (_super) {
             });
         });
     };
-    Welcome.prototype.setAccount = function () {
-        var newDialog = cc.instantiate(this.accountPrefab);
-        this.node.addChild(newDialog);
-        newDialog.setPosition(cc.v2(0, 0));
+    Welcome.prototype.approve = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var squidContract, squidSigner, tx, e_3, hepContract, hepSigner, tx, e_4;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        this.approveButton.interactable = false;
+                        if (!(this.squidApproved < 1e18)) return [3 /*break*/, 4];
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        squidContract = new ethers_umd_min_js_1.ethers.Contract(this.squidAddress, this.ERC20Json.json.abi, this.provider);
+                        squidSigner = squidContract.connect(this.wallet);
+                        return [4 /*yield*/, squidSigner.approve(this.buildingAddress, ethers_umd_min_js_1.ethers.utils.parseUnits("6666"))];
+                    case 2:
+                        tx = _a.sent();
+                        return [3 /*break*/, 4];
+                    case 3:
+                        e_3 = _a.sent();
+                        cc.log(e_3);
+                        return [3 /*break*/, 4];
+                    case 4:
+                        if (!(this.hepApproved < 1)) return [3 /*break*/, 8];
+                        _a.label = 5;
+                    case 5:
+                        _a.trys.push([5, 7, , 8]);
+                        hepContract = new ethers_umd_min_js_1.ethers.Contract(this.hepAddress, this.ERC20Json.json.abi, this.provider);
+                        hepSigner = hepContract.connect(this.wallet);
+                        return [4 /*yield*/, hepSigner.approve(this.rogueLandAddress, 30000000)];
+                    case 6:
+                        tx = _a.sent();
+                        return [3 /*break*/, 8];
+                    case 7:
+                        e_4 = _a.sent();
+                        cc.log(e_4);
+                        return [3 /*break*/, 8];
+                    case 8: return [2 /*return*/];
+                }
+            });
+        });
     };
     Welcome.prototype.gameSetting = function () {
         var newDialog = cc.instantiate(this.registerPrefab);
@@ -346,46 +282,50 @@ var Welcome = /** @class */ (function (_super) {
         newDialog.setPosition(cc.v2(0, 0));
         // 在对话框脚本组件上保存 Welcome 对象的引用
         newDialog.getComponent('Register').welcome = this;
-        newDialog.getComponent('Register').setInfo(this.accountInfo.name, this.accountInfo.email);
+        newDialog.getComponent('Register').setInfo(this.username);
     };
     Welcome.prototype.setUserInfo = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var okt, _a, balance, i, freePunk, punkId, remoteUrl, sprite_1, claimed, _b, useId, done;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
-                    case 0: return [4 /*yield*/, this.wallet.getBalance()];
+            var okt, _a, gameInfo, punkId, remoteUrl, sprite_1;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, this.provider.getBalance(this.address)];
                     case 1:
-                        okt = _c.sent();
-                        this.okt = Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(okt) * 10000);
-                        this.registerContract = new ethers_umd_min_js_1.ethers.Contract(this.registerAddress, this.registerJson.json.abi, this.provider);
-                        _a = this;
-                        return [4 /*yield*/, this.registerContract.accountInfo(this.address)];
-                    case 2:
-                        _a.accountInfo = _c.sent();
-                        return [4 /*yield*/, this.registerContract.balanceOf(this.address)];
-                    case 3:
-                        balance = _c.sent();
-                        for (i = 0; i < balance.length; i++) {
-                            this.balance[i] = balance[i];
-                        }
-                        if (this.balance[0] > 20000e18) {
-                            this.chargeButton.interactable = true;
-                        }
-                        this.setBalanceLabel();
-                        if (this.accountInfo.name != "") {
-                            this.nameLabel.string = this.accountInfo.name;
-                            if (this.accountInfo.punkId > 0) {
-                                this.nameLabel.string = this.accountInfo.name + "(VIP)";
-                            }
-                        }
+                        okt = _b.sent();
+                        this.okt = Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(okt) * 10000) / 10000;
+                        cc.log(this.okt);
                         this.rogueLandContract = new ethers_umd_min_js_1.ethers.Contract(this.rogueLandAddress, this.rogueLandJson.json.abi, this.provider);
-                        return [4 /*yield*/, this.rogueLandContract.freePunk()];
-                    case 4:
-                        freePunk = _c.sent();
-                        this.setInfoLabel(freePunk - 2);
+                        _a = this;
+                        return [4 /*yield*/, this.rogueLandContract.nickNameOf(this.address)];
+                    case 2:
+                        _a.username = _b.sent();
+                        return [4 /*yield*/, this.rogueLandContract.gameInfo(this.address)];
+                    case 3:
+                        gameInfo = _b.sent();
+                        cc.log(gameInfo);
+                        this.hep = gameInfo.hepBalance;
+                        this.squid = Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(gameInfo.squidBalance) * 1000) / 1000;
+                        this.pool = Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(gameInfo.pool));
+                        this.setBalanceLabel();
+                        if (gameInfo.squidApproved < 1e18 || gameInfo.hepApproved < 1) {
+                            this.squidApproved = gameInfo.squidApproved;
+                            this.hepApproved = gameInfo.hepApproved;
+                            this.approveButton.interactable = true;
+                        }
+                        if (gameInfo.squidApproved >= 1e18 && gameInfo.squidBalance >= 1e18) {
+                            this.registerButton.interactable = true;
+                        }
+                        if (gameInfo.hepApproved >= 1 && gameInfo.hepBalance >= 1) {
+                            cc.sys.localStorage.setItem('hep', Number(gameInfo.hepBalance));
+                        }
+                        if (this.username != "") {
+                            this.nameLabel.string = this.username;
+                        }
+                        //const totalPunk = await this.rogueLandContract.totalPunk()
+                        this.setInfoLabel(gameInfo.total, gameInfo.dead);
                         return [4 /*yield*/, this.rogueLandContract.punkOf(this.address)];
-                    case 5:
-                        punkId = _c.sent();
+                    case 4:
+                        punkId = _b.sent();
                         if (punkId > 0) {
                             cc.log(this.punkJson.json[punkId - 1]);
                             remoteUrl = "https://www.losernft.org/ipfs/" + this.punkJson.json[punkId - 1].hash;
@@ -400,56 +340,70 @@ var Welcome = /** @class */ (function (_super) {
                             });
                         }
                         else {
-                            if (freePunk <= 667 && this.okt > 0) {
-                                //this.registerButton.interactable = true
-                                //this.registerButton.node.zIndex = 2
-                            }
+                            //if (freePunk <= 667 && this.okt > 0) {
+                            //	this.registerButton.interactable = true
+                            //	this.registerButton.node.zIndex = 2
+                            //}
                             cc.log("you are a visitor");
                             cc.sys.localStorage.setItem('myPunk', 0);
                         }
-                        return [4 /*yield*/, this.rogueLandContract.claimed(this.address)];
-                    case 6:
-                        claimed = _c.sent();
-                        if (!!claimed) return [3 /*break*/, 8];
-                        _b = this;
-                        return [4 /*yield*/, this.rogueLandContract.pendingRewards(this.address)];
-                    case 7:
-                        _b.pendingRewards = _c.sent();
-                        _c.label = 8;
-                    case 8: return [4 /*yield*/, this.registerContract.lastUse(this.address)];
-                    case 9:
-                        useId = _c.sent();
-                        if (!(useId > 0)) return [3 /*break*/, 11];
-                        this.setRecordLabel(useId, true);
-                        return [4 /*yield*/, this.registerContract.useInfo(useId)];
-                    case 10:
-                        done = _c.sent();
-                        if (done == 1) {
-                            this.setRecordLabel(useId, false);
-                        }
-                        _c.label = 11;
-                    case 11: return [2 /*return*/];
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    Welcome.prototype.getChainId = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var chainId, newAccounts, err_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 5, , 6]);
+                        return [4 /*yield*/, ethereum.request({
+                                method: 'eth_chainId',
+                            })];
+                    case 1:
+                        chainId = _a.sent();
+                        cc.log("chain id", chainId);
+                        if (!(chainId == '0x42')) return [3 /*break*/, 4];
+                        return [4 /*yield*/, ethereum.request({
+                                method: 'eth_requestAccounts'
+                            })];
+                    case 2:
+                        _a.sent();
+                        return [4 /*yield*/, ethereum.request({
+                                method: 'eth_accounts',
+                            })];
+                    case 3:
+                        newAccounts = _a.sent();
+                        this.address = newAccounts[0];
+                        cc.sys.localStorage.setItem('address', this.address);
+                        cc.log("address", this.address);
+                        this.setUserInfo();
+                        _a.label = 4;
+                    case 4: return [3 /*break*/, 6];
+                    case 5:
+                        err_1 = _a.sent();
+                        console.error(err_1);
+                        return [3 /*break*/, 6];
+                    case 6: return [2 /*return*/];
                 }
             });
         });
     };
     Welcome.prototype.onLoad = function () {
-        //this.tradeButton.interactable = false
-        this.chargeButton.interactable = false;
+        //this.loserButton.interactable = false
+        //this.cherryButton.interactable = false
         //this.registerButton.interactable = false
-        var walletData = JSON.parse(cc.sys.localStorage.getItem('wallet'));
-        if (!walletData) {
-            var wallet = new ethers_umd_min_js_1.ethers.Wallet.createRandom();
-            this.setWallet(wallet);
+        this.approveButton.interactable = false;
+        cc.sys.localStorage.setItem('address', '');
+        cc.sys.localStorage.setItem('hep', 0);
+        var ethereum = window.ethereum;
+        if (Boolean(ethereum)) {
+            this.provider = new ethers_umd_min_js_1.ethers.providers.Web3Provider(window.ethereum);
+            this.wallet = this.provider.getSigner();
+            this.getChainId();
         }
-        else {
-            this.address = walletData.address;
-            this.privateKey = walletData.privateKey;
-        }
-        this.provider = new ethers_umd_min_js_1.ethers.providers.JsonRpcProvider("https://exchaintestrpc.okex.org");
-        var walletPrivateKey = new ethers_umd_min_js_1.ethers.Wallet(this.privateKey);
-        this.wallet = walletPrivateKey.connect(this.provider);
-        this.setUserInfo();
         var lang = cc.sys.localStorage.getItem('lang');
         if (!lang) {
             this.gameSetting();
@@ -467,29 +421,14 @@ var Welcome = /** @class */ (function (_super) {
         property(cc.Label)
     ], Welcome.prototype, "balanceLabel", void 0);
     __decorate([
-        property(cc.Label)
-    ], Welcome.prototype, "recordLabel", void 0);
-    __decorate([
-        property(cc.Button)
-    ], Welcome.prototype, "chargeButton", void 0);
-    __decorate([
-        property(cc.Button)
-    ], Welcome.prototype, "tradeButton", void 0);
-    __decorate([
         property(cc.Button)
     ], Welcome.prototype, "registerButton", void 0);
     __decorate([
         property(cc.Button)
-    ], Welcome.prototype, "giftButton", void 0);
-    __decorate([
-        property(cc.EditBox)
-    ], Welcome.prototype, "phoneEditbox", void 0);
+    ], Welcome.prototype, "approveButton", void 0);
     __decorate([
         property(cc.JsonAsset)
-    ], Welcome.prototype, "registerJson", void 0);
-    __decorate([
-        property(cc.JsonAsset)
-    ], Welcome.prototype, "newRegisterJson", void 0);
+    ], Welcome.prototype, "ERC20Json", void 0);
     __decorate([
         property(cc.JsonAsset)
     ], Welcome.prototype, "rogueLandJson", void 0);
@@ -511,6 +450,9 @@ var Welcome = /** @class */ (function (_super) {
     __decorate([
         property(cc.Prefab)
     ], Welcome.prototype, "withdrawPrefab", void 0);
+    __decorate([
+        property(cc.EditBox)
+    ], Welcome.prototype, "idEditbox", void 0);
     Welcome = __decorate([
         ccclass
     ], Welcome);

@@ -88,47 +88,62 @@ var Game = /** @class */ (function (_super) {
         var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.id = 0;
         _this.t = 0;
+        _this.block = 0;
         _this.currentSchedule = 0;
         _this.toCommit = 0;
         _this.balance = 0;
         _this.gold = 0;
-        _this.endRound = 188;
+        _this.hp = 0;
+        _this.hep = 0;
+        _this.endRound = 1320;
         _this.minimapSize = 51;
         _this.mapSize = 51;
         _this.eventNumber = 0;
         _this.playerAddress = "";
+        _this.userName = 'vistor';
         _this.mode = "view";
         _this.isBusy = false;
-        _this.registerAddress = '0x5eFa33708a7688Fa116B6Cb3eC65D7fcE3c9f599';
-        _this.rogueLandAddress = '0xFDE9DAacCbA3D802BFCBAd54039A4B0DeAA48e85';
+        _this.rogueLandAddress = '0xb6AF53068D3137527eaf96E7f1c2504480945149';
         _this.rogueLandContract = null;
+        _this.buildingAddress = '0x26d1e186e7A6b96D84A5F0BbB27226F3c80DEfD8';
+        _this.buildingContract = null;
+        _this.landAddress = '0x3bF771C9C29B03a3cb53b377A0c4797458787721';
+        _this.landContract = null;
         _this.provider = null;
         _this.wallet = null;
+        _this.validToGo = {};
         _this.playerInfo = { x: 0, y: 0, t: 0 };
-        _this.toPick = { x: 0, y: 0 };
+        _this.landPos = { x: 0, y: 0 };
         _this.minimapCenter = { x: 0, y: 0 };
         _this.timeList = [];
-        _this.numberList = [];
         _this.punks = [];
         _this.chests = [];
         _this.tiledLayer = null;
+        _this.gameLayer = null;
         _this.label = null;
         _this.switchLabel = null;
+        _this.messageLabel = null;
         _this.modeButton = null;
-        _this.swapButton = null;
+        _this.leaveButton = null;
+        _this.useButton = null;
         _this.smallMap = null;
+        _this.gameMap = null;
         _this.text = 'hello';
         _this.grassPrefab = null;
         _this.crossPrefab = null;
         _this.chestPrefab = null;
         _this.numberPrefab = null;
         _this.punkPrefab = null;
-        _this.putGoldPrefab = null;
+        _this.redStarPrefab = null;
+        _this.blueStarPrefab = null;
+        _this.circlePrefab = null;
+        _this.diePrefab = null;
         _this.punkInfoPrefab = null;
         _this.goldInfoPrefab = null;
-        _this.registerJson = null;
         _this.rogueLandJson = null;
+        _this.buildingJson = null;
         _this.loserpunkJson = null;
+        _this.landJson = null;
         // Player 节点，用于获取主角的位置
         _this.player = null;
         // 放置时间按钮
@@ -139,18 +154,18 @@ var Game = /** @class */ (function (_super) {
         _this.camera = null;
         return _this;
     }
-    Game.prototype.spawnNewDialog = function () {
+    Game.prototype.spawnNewDieDialog = function (name) {
         // 使用给定的模板在场景中生成一个新节点
-        var newDialog = cc.instantiate(this.putGoldPrefab);
+        var newDialog = cc.instantiate(this.diePrefab);
         // 将新增的节点添加到 Canvas 节点下面
         this.node.addChild(newDialog);
-        newDialog.zIndex = 5;
+        newDialog.zIndex = 6;
         // 设置宝箱的位置
         newDialog.setPosition(cc.v2(this.player.x, this.player.y));
         // 在对话框脚本组件上保存 Game 对象的引用
-        newDialog.getComponent('PutGoldDialog').game = this;
+        newDialog.getComponent('DieDialog').setText(name);
     };
-    Game.prototype.spawnNewPunkInfo = function (id) {
+    Game.prototype.spawnNewPunkInfo = function (id, x, y, inHouse) {
         return __awaiter(this, void 0, void 0, function () {
             var newDialog, info;
             return __generator(this, function (_a) {
@@ -158,22 +173,25 @@ var Game = /** @class */ (function (_super) {
                     case 0:
                         newDialog = cc.instantiate(this.punkInfoPrefab);
                         this.node.addChild(newDialog);
-                        newDialog.zIndex = 5;
+                        newDialog.zIndex = 6;
                         newDialog.setPosition(cc.v2(this.player.x, this.player.y));
-                        // 在对话框脚本组件上保存 Game 对象的引用
-                        cc.log(id);
+                        cc.log(id, x, y, this.t);
+                        cc.log(this.playerInfo);
                         newDialog.getComponent('PunkInfo').game = this;
                         newDialog.getComponent('PunkInfo').setId(id);
                         return [4 /*yield*/, this.getPunkInfo(id)];
                     case 1:
                         info = _a.sent();
                         newDialog.getComponent('PunkInfo').setInfo(info);
+                        if (id != this.id && this.t == this.playerInfo.t && Math.abs(x - this.playerInfo.x) <= 1 && Math.abs(y - this.playerInfo.y) <= 1 && !info.isMoving && !inHouse) {
+                            newDialog.getComponent('PunkInfo').setAttack(true);
+                        }
                         return [2 /*return*/];
                 }
             });
         });
     };
-    Game.prototype.spawnNewGoldInfo = function (x, y) {
+    Game.prototype.spawnNewLandInfo = function () {
         return __awaiter(this, void 0, void 0, function () {
             var newDialog, info;
             return __generator(this, function (_a) {
@@ -181,13 +199,49 @@ var Game = /** @class */ (function (_super) {
                     case 0:
                         newDialog = cc.instantiate(this.goldInfoPrefab);
                         this.node.addChild(newDialog);
-                        newDialog.zIndex = 5;
+                        newDialog.zIndex = 6;
                         newDialog.setPosition(cc.v2(this.player.x, this.player.y));
-                        return [4 /*yield*/, this.rogueLandContract.goldOn(x, y)];
+                        // 在对话框脚本组件上保存 Game 对象的引用
+                        newDialog.getComponent('GoldDialog').game = this;
+                        return [4 /*yield*/, this.buildingContract.landOf(this.landPos.x, this.landPos.y)];
                     case 1:
                         info = _a.sent();
-                        newDialog.getComponent('GoldDialog').setLabel({ amount: info.amount, punkNumber: info.punkNumber, time: info.vaildTime - this.playerInfo.t });
+                        newDialog.getComponent('GoldDialog').setLabel({ pos: this.landPos, block: this.block, land: info, player: this.playerAddress });
+                        newDialog.on(cc.Node.EventType.TOUCH_START, function (event) { cc.log('touched'); }, this);
                         return [2 /*return*/];
+                }
+            });
+        });
+    };
+    Game.prototype.spawnNewCircle = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var balance, i, id, pos, newCircle;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.landContract.balanceOf(this.playerAddress)];
+                    case 1:
+                        balance = _a.sent();
+                        i = 0;
+                        _a.label = 2;
+                    case 2:
+                        if (!(i < balance)) return [3 /*break*/, 6];
+                        return [4 /*yield*/, this.landContract.tokenOfOwnerByIndex(this.playerAddress, i)];
+                    case 3:
+                        id = _a.sent();
+                        return [4 /*yield*/, this.landContract.positionOf(id)
+                            // 使用给定的模板在场景中生成一个新节点
+                        ];
+                    case 4:
+                        pos = _a.sent();
+                        newCircle = cc.instantiate(this.circlePrefab);
+                        this.node.addChild(newCircle);
+                        newCircle.setPosition(cc.v2(pos.x * 64, pos.y * 64));
+                        newCircle.zIndex = 3;
+                        _a.label = 5;
+                    case 5:
+                        i++;
+                        return [3 /*break*/, 2];
+                    case 6: return [2 /*return*/];
                 }
             });
         });
@@ -202,6 +256,12 @@ var Game = /** @class */ (function (_super) {
         // 在草地脚本组件上保存 Camera 对象的引用
         newGrass.getComponent('Grass').camera = this.camera;
         //newGrass.on(cc.Node.EventType.TOUCH_START,function(t){cc.log("触摸开始");},this)
+        newGrass.on(cc.Node.EventType.TOUCH_START, function (event) {
+            this.landPos.x = x / 64 + Math.round(this.player.x / 64);
+            this.landPos.y = y / 64 + Math.round(this.player.y / 64);
+            var center = this.getPosition();
+            //cc.log(center, x, y)
+        }, this);
         //监听
         newGrass.on(cc.Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
         newGrass.on(cc.Node.EventType.TOUCH_END, this.onTouchEnd, this);
@@ -231,26 +291,22 @@ var Game = /** @class */ (function (_super) {
             newCross2.zIndex = 2;
         }
     };
-    Game.prototype.spawnNewChest = function (x, y) {
-        // 使用给定的模板在场景中生成一个新节点
-        var newChest = cc.instantiate(this.chestPrefab);
-        // 将新增的节点添加到 Canvas 节点下面
-        this.node.addChild(newChest);
-        newChest.zIndex = 2;
-        // 设置宝箱的位置
-        newChest.setPosition(cc.v2(x, y));
-        this.chests.push(newChest);
-        newChest.on(cc.Node.EventType.TOUCH_START, function (event) {
-            this.spawnNewGoldInfo(x / 64, y / 64);
-        }, this);
-    };
-    Game.prototype.spawnNewPunk = function (x, y, id) {
+    Game.prototype.spawnNewPunk = function (x, y, id, inHouse) {
         //cc.log(x, y, id.toString())
         // 使用给定的模板在场景中生成一个新节点
         var newPunk = cc.instantiate(this.punkPrefab);
+        var newStar;
+        if (id % 2 == 0) {
+            newStar = cc.instantiate(this.redStarPrefab);
+        }
+        else {
+            newStar = cc.instantiate(this.blueStarPrefab);
+        }
         // 将新增的节点添加到 Canvas 节点下面
         this.node.addChild(newPunk);
-        newPunk.zIndex = 2;
+        newPunk.addChild(newStar);
+        newStar.setPosition(cc.v2(20, 20));
+        newPunk.zIndex = inHouse ? 2 : 4;
         // 设置punk的位置
         newPunk.setPosition(cc.v2(x, y));
         this.punks.push(newPunk);
@@ -267,33 +323,40 @@ var Game = /** @class */ (function (_super) {
             });
         }
         newPunk.on(cc.Node.EventType.TOUCH_START, function (event) {
-            this.spawnNewPunkInfo(id);
+            this.spawnNewPunkInfo(id, x / 64, y / 64, inHouse);
         }, this);
     };
-    Game.prototype.spawnNewNumber = function (x, y, action) {
+    Game.prototype.commitMove = function (x, y, action) {
         return __awaiter(this, void 0, void 0, function () {
-            var newNumber, color;
+            var rogueLandSigner, tx, e_1;
             return __generator(this, function (_a) {
-                if (this.balance < 0)
-                    return [2 /*return*/];
-                newNumber = cc.instantiate(this.numberPrefab);
-                // 将新增的节点添加到 Canvas 节点下面
-                this.node.addChild(newNumber);
-                newNumber.zIndex = 2;
-                // 设置数字的位置
-                newNumber.setPosition(cc.v2(x, y));
-                color = new cc.Color(242, 129, 27);
-                newNumber.color = color;
-                // 增加1回合
-                this.t++;
-                newNumber.getComponent(cc.Label).string = this.t;
-                this.numberList[this.t - this.currentSchedule - 1] = { time: this.t, action: action, status: Status.Schedule, number: newNumber };
-                // 更新地图
-                this.resetMinimap();
-                this.updateMap();
-                // 自动提交
-                this.commit();
-                return [2 /*return*/];
+                switch (_a.label) {
+                    case 0:
+                        if (this.balance < 0)
+                            return [2 /*return*/];
+                        if (!this.validToGo["x" + x + "y" + y]) {
+                            cc.log('invalid position');
+                            return [2 /*return*/];
+                        }
+                        // 增加1回合
+                        this.t++;
+                        // 更新地图
+                        this.resetMinimap();
+                        this.updateMap();
+                        rogueLandSigner = this.rogueLandContract.connect(this.wallet);
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        return [4 /*yield*/, rogueLandSigner.scheduleAction(this.id, action)];
+                    case 2:
+                        tx = _a.sent();
+                        return [3 /*break*/, 4];
+                    case 3:
+                        e_1 = _a.sent();
+                        cc.log(e_1);
+                        return [3 /*break*/, 4];
+                    case 4: return [2 /*return*/];
+                }
             });
         });
     };
@@ -353,72 +416,57 @@ var Game = /** @class */ (function (_super) {
         }
         else if (this.playerInfo.t == 0) {
             if (lang === 'zh') {
-                this.text = "\u6E38\u620F\u5C1A\u672A\u5F00\u59CB \n \u884C\u52A8\u70B9: " + this.balance;
+                this.text = "\u6E38\u620F\u5C1A\u672A\u5F00\u59CB \u884C\u52A8\u70B9: " + this.balance;
             }
             else {
-                this.text = "Game not start yet \n ACTION POINTS: " + this.balance;
+                this.text = "Game not start yet ACTION POINTS: " + this.balance;
             }
         }
         else if (this.playerInfo.t == this.endRound) {
             if (lang === 'zh') {
-                this.text = "\u6E38\u620F\u7ED3\u675F \n \u884C\u52A8\u70B9: " + this.balance;
+                this.text = "\u6E38\u620F\u7ED3\u675F \u884C\u52A8\u70B9: " + this.balance;
             }
             else {
-                this.text = "Game Over \n ACTION POINTS: " + this.balance;
+                this.text = "Game Over ACTION POINTS: " + this.balance;
             }
         }
         else {
-            if (lang === 'zh') {
-                this.text = "\u91D1\u5E01: " + this.gold + " \n\u884C\u52A8\u70B9: " + this.balance + " \n" + (this.endRound - this.playerInfo.t) + "\u56DE\u5408\u540E\u6E38\u620F\u7ED3\u675F";
-            }
-            else {
-                this.text = "GOLD: " + this.gold + " \n ACTION POINTS: " + this.balance + " \nGAME WILL END IN " + (this.endRound - this.playerInfo.t) + " ROUNDS";
-            }
+            this.text = "SQUID: " + this.gold + " OKT: " + this.balance + " HP: " + this.hp + " HEP: " + this.hep;
+            //this.text += `${this.endRound - this.t}回合后游戏结束`
         }
         this.label.string = this.text;
     };
-    Game.prototype.commit = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var action, rogueLandSigner, tx, e_1;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        action = this.numberList[this.toCommit - this.currentSchedule];
-                        action.status = Status.Committing;
-                        rogueLandSigner = this.rogueLandContract.connect(this.wallet);
-                        _a.label = 1;
-                    case 1:
-                        _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, rogueLandSigner.scheduleAction(this.id, action.action, { gasLimit: 300000, gasPrice: 1000000000 })];
-                    case 2:
-                        tx = _a.sent();
-                        return [3 /*break*/, 4];
-                    case 3:
-                        e_1 = _a.sent();
-                        cc.log(e_1);
-                        return [3 /*break*/, 4];
-                    case 4:
-                        action.status = Status.Committed;
-                        action.number.destroy();
-                        this.toCommit++;
-                        this.balance = this.balance - 3;
-                        return [2 /*return*/];
-                }
-            });
-        });
+    Game.prototype.setAttackMessage = function (A, B, n) {
+        var lang = cc.sys.localStorage.getItem('lang');
+        if (lang === 'zh') {
+            this.messageLabel.string = A + "\u653B\u51FB\u4E86" + B + "\uFF0C\u9020\u6210\u4E86" + n + "\u70B9\u4F24\u5BB3\n" + this.messageLabel.string;
+        }
+        else {
+            this.messageLabel.string = A + " hits " + B + "\uFF0Cdeals " + n + " points of damage\n" + this.messageLabel.string;
+        }
     };
-    Game.prototype.swap = function () {
+    Game.prototype.setDieMessage = function (A, B, n) {
+        var lang = cc.sys.localStorage.getItem('lang');
+        if (lang === 'zh') {
+            this.messageLabel.string = A + "\u51FB\u6740\u4E86" + B + "\uFF0C\u83B7\u5F97\u4E86" + n + "\u4E2A\u9C7F\u9C7C\u5E01\n" + this.messageLabel.string;
+        }
+        else {
+            this.messageLabel.string = A + " killed " + B + "\uFF0Crob " + n + " SQUIDs\n" + this.messageLabel.string;
+        }
+        this.spawnNewDieDialog(B);
+    };
+    Game.prototype.leaveGame = function () {
         return __awaiter(this, void 0, void 0, function () {
             var rogueLandSigner, tx, e_2;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this.swapButton.interactable = false;
+                        this.leaveButton.interactable = false;
                         rogueLandSigner = this.rogueLandContract.connect(this.wallet);
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, rogueLandSigner.swapGold(this.playerAddress, { gasPrice: 1000000000 })];
+                        return [4 /*yield*/, rogueLandSigner.claimRewards()];
                     case 2:
                         tx = _a.sent();
                         return [3 /*break*/, 4];
@@ -427,29 +475,23 @@ var Game = /** @class */ (function (_super) {
                         cc.log(e_2);
                         return [3 /*break*/, 4];
                     case 4:
-                        this.balance = this.balance + 100;
-                        this.gold = this.gold - 1000;
-                        if (this.gold >= 1000) {
-                            //this.swapButton.interactable = true
-                        }
+                        this.setDieMessage(this.userName, this.userName, this.gold);
                         return [2 /*return*/];
                 }
             });
         });
     };
-    Game.prototype.pick = function () {
+    Game.prototype.buyLand = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var rogueLandSigner, tx, e_3;
+            var buildingSigner, tx, e_3;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        if (this.balance < 0)
-                            return [2 /*return*/];
-                        rogueLandSigner = this.rogueLandContract.connect(this.wallet);
+                        buildingSigner = this.buildingContract.connect(this.wallet);
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, rogueLandSigner.getGold(this.toPick.x, this.toPick.y, { gasLimit: 500000, gasPrice: 1000000000 })];
+                        return [4 /*yield*/, buildingSigner.mint(this.landPos.x, this.landPos.y)];
                     case 2:
                         tx = _a.sent();
                         return [3 /*break*/, 4];
@@ -457,27 +499,22 @@ var Game = /** @class */ (function (_super) {
                         e_3 = _a.sent();
                         cc.log(e_3);
                         return [3 /*break*/, 4];
-                    case 4:
-                        this.balance = this.balance - 2;
-                        return [2 /*return*/];
+                    case 4: return [2 /*return*/];
                 }
             });
         });
     };
-    Game.prototype.put = function () {
+    Game.prototype.build = function (kind) {
         return __awaiter(this, void 0, void 0, function () {
-            var rogueLandSigner, tx, e_4;
+            var buildingSigner, tx, e_4;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        cc.log('put gold');
-                        if (this.balance < 0)
-                            return [2 /*return*/];
-                        rogueLandSigner = this.rogueLandContract.connect(this.wallet);
+                        buildingSigner = this.buildingContract.connect(this.wallet);
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, rogueLandSigner.putGold({ gasPrice: 1000000000 })];
+                        return [4 /*yield*/, buildingSigner.build(this.landPos.x, this.landPos.y, kind)];
                     case 2:
                         tx = _a.sent();
                         return [3 /*break*/, 4];
@@ -485,32 +522,115 @@ var Game = /** @class */ (function (_super) {
                         e_4 = _a.sent();
                         cc.log(e_4);
                         return [3 /*break*/, 4];
+                    case 4: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    Game.prototype.useHEP = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var rogueLandSigner, tx, e_5;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        this.useButton.interactable = false;
+                        rogueLandSigner = this.rogueLandContract.connect(this.wallet);
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        return [4 /*yield*/, rogueLandSigner.useHEP(this.id)];
+                    case 2:
+                        tx = _a.sent();
+                        return [3 /*break*/, 4];
+                    case 3:
+                        e_5 = _a.sent();
+                        cc.log(e_5);
+                        return [3 /*break*/, 4];
                     case 4:
-                        //this.balance = this.balance - tx.gasPrice*tx.gasLimit
-                        this.gold = Number(this.gold) + 100;
-                        //cc.log(tx.gasPrice/1e9*tx.gasLimit)
-                        this.updateMap();
+                        //this.balance = this.balance - 2
+                        this.hep--;
+                        this.hp = Math.min(this.hp + 10, 15);
+                        if (this.hep > 0) {
+                            this.useButton.interactable = true;
+                        }
                         return [2 /*return*/];
+                }
+            });
+        });
+    };
+    Game.prototype.attack = function (to, _seed, _name) {
+        return __awaiter(this, void 0, void 0, function () {
+            var abiCoder, seedA, seedB, rogueLandSigner, tx, e_6, diceA, diceB, _damage;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        abiCoder = new ethers_umd_min_js_1.ethers.utils.AbiCoder();
+                        cc.log(this.seed, _seed);
+                        seedA = ethers_umd_min_js_1.ethers.BigNumber.from(ethers_umd_min_js_1.ethers.utils.keccak256(abiCoder.encode(["uint", "uint"], [this.id, _seed])));
+                        seedB = ethers_umd_min_js_1.ethers.BigNumber.from(ethers_umd_min_js_1.ethers.utils.keccak256(abiCoder.encode(["uint", "uint"], [to, this.seed])));
+                        this.seed = seedB;
+                        if (this.balance < 0)
+                            return [2 /*return*/];
+                        rogueLandSigner = this.rogueLandContract.connect(this.wallet);
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        return [4 /*yield*/, rogueLandSigner.attack(this.id, to)];
+                    case 2:
+                        tx = _a.sent();
+                        return [3 /*break*/, 4];
+                    case 3:
+                        e_6 = _a.sent();
+                        cc.log(e_6);
+                        return [3 /*break*/, 4];
+                    case 4:
+                        diceA = seedA.mod(100);
+                        diceB = seedB.mod(100);
+                        cc.log(Number(diceA), Number(diceB));
+                        _damage = 0;
+                        if (diceA / 5 + 1 < 19) {
+                            _damage = (diceA) % 5 + 1;
+                            this.setAttackMessage(this.userName, _name, diceA % 5 + 1);
+                        }
+                        else {
+                            this.setAttackMessage(this.userName, _name, 0);
+                        }
+                        if (diceB / 5 + 1 < 19) {
+                            this.hp -= ((diceB) % 5 + 1);
+                            this.setAttackMessage(_name, this.userName, diceB % 5 + 1);
+                            if (this.hp <= 0) {
+                                this.setDieMessage(_name, this.userName, Number(this.gold));
+                            }
+                        }
+                        else {
+                            this.setAttackMessage(_name, this.userName, 0);
+                        }
+                        return [2 /*return*/, { damage: _damage, newSeed: seedA, name: this.userName }
+                            //cc.log(tx.gasPrice/1e9*tx.gasLimit)
+                            //this.updateMap()
+                            //this.getGoldInfo()
+                        ];
                 }
             });
         });
     };
     Game.prototype.getPunkInfo = function (id) {
         return __awaiter(this, void 0, void 0, function () {
-            var player, registerContract, account, punkInfo;
+            var punkInfo;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.rogueLandContract.punkMaster(id)];
+                    case 0: return [4 /*yield*/, this.rogueLandContract.getPunkInfo(id)];
                     case 1:
-                        player = _a.sent();
-                        registerContract = new ethers_umd_min_js_1.ethers.Contract(this.registerAddress, this.registerJson.json.abi, this.provider);
-                        return [4 /*yield*/, registerContract.accountInfo(player)];
-                    case 2:
-                        account = _a.sent();
-                        return [4 /*yield*/, this.rogueLandContract.stillPunks(id)];
-                    case 3:
                         punkInfo = _a.sent();
-                        return [2 /*return*/, { name: account.name, gold: Number(punkInfo.gold), address: player }];
+                        return [2 /*return*/, {
+                                name: punkInfo.name,
+                                isMoving: Number(punkInfo.isMoving),
+                                gold: ethers_umd_min_js_1.ethers.utils.formatEther(punkInfo.totalGold),
+                                hp: Number(punkInfo.hp),
+                                evil: Number(punkInfo.evil),
+                                seed: punkInfo.seed.toHexString(),
+                                address: punkInfo.player
+                            }];
                 }
             });
         });
@@ -541,30 +661,26 @@ var Game = /** @class */ (function (_super) {
     };
     Game.prototype.getStatus = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var walletData, walletPrivateKey, _a;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        walletData = JSON.parse(cc.sys.localStorage.getItem('wallet'));
-                        walletPrivateKey = new ethers_umd_min_js_1.ethers.Wallet(walletData.privateKey);
-                        this.playerAddress = walletData.address;
-                        this.provider = new ethers_umd_min_js_1.ethers.providers.JsonRpcProvider("https://exchaintestrpc.okex.org");
-                        this.wallet = walletPrivateKey.connect(this.provider);
-                        this.rogueLandContract = new ethers_umd_min_js_1.ethers.Contract(this.rogueLandAddress, this.rogueLandJson.json.abi, this.provider);
-                        if (this.id > 0) {
-                            this.getEvent();
-                        }
-                        else {
-                            this.modeButton.interactable = false;
-                            this.goViewMode();
-                        }
-                        _a = this;
-                        return [4 /*yield*/, this.rogueLandContract.mapSize()];
-                    case 1:
-                        _a.mapSize = _b.sent();
-                        this.spawnNewCross(Number(this.mapSize) + 1);
-                        return [2 /*return*/];
+            return __generator(this, function (_a) {
+                this.playerAddress = cc.sys.localStorage.getItem('address');
+                if (this.playerAddress == '') {
+                    cc.log('visitor');
+                    this.provider = new ethers_umd_min_js_1.ethers.providers.JsonRpcProvider("https://exchainrpc.okex.org");
+                    this.modeButton.interactable = false;
                 }
+                else {
+                    cc.log(this.playerAddress);
+                    this.provider = new ethers_umd_min_js_1.ethers.providers.Web3Provider(window.ethereum);
+                    this.wallet = this.provider.getSigner();
+                }
+                this.rogueLandContract = new ethers_umd_min_js_1.ethers.Contract(this.rogueLandAddress, this.rogueLandJson.json.abi, this.provider);
+                this.buildingContract = new ethers_umd_min_js_1.ethers.Contract(this.buildingAddress, this.buildingJson.json.abi, this.provider);
+                this.landContract = new ethers_umd_min_js_1.ethers.Contract(this.landAddress, this.landJson.json.abi, this.provider);
+                this.goViewMode();
+                this.mapSize = 24;
+                this.spawnNewCross(Number(this.mapSize) + 1);
+                this.spawnNewCircle();
+                return [2 /*return*/];
             });
         });
     };
@@ -592,12 +708,12 @@ var Game = /** @class */ (function (_super) {
     };
     Game.prototype.updateMap = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var center, x1, x2, y1, y2, map, node, node, i, x, y;
+            var center, x1, x2, y1, y2, minimap, gamemap, node, node, i, x, y;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         this.changeTimeButton();
-                        if (!!this.isBusy) return [3 /*break*/, 2];
+                        if (!!this.isBusy) return [3 /*break*/, 3];
                         this.isBusy = true;
                         center = this.getPosition();
                         x1 = center.x - 7;
@@ -606,7 +722,10 @@ var Game = /** @class */ (function (_super) {
                         y2 = center.y + 5;
                         return [4 /*yield*/, this.rogueLandContract.getEvents(x1, y1, x2, y2, this.t)];
                     case 1:
-                        map = _a.sent();
+                        minimap = _a.sent();
+                        return [4 /*yield*/, this.buildingContract.getLandInfo(x1, y1, x2, y2)];
+                    case 2:
+                        gamemap = _a.sent();
                         while (this.punks.length > 0) {
                             node = this.punks.pop();
                             node.destroy();
@@ -618,67 +737,37 @@ var Game = /** @class */ (function (_super) {
                         i = 0;
                         for (x = x1; x <= x2; x++) {
                             for (y = y1; y <= y2; y++) {
-                                if (map[i].movingPunk != 0 && !(this.mode == "schedule" && map[i].movingPunk == this.id)) {
-                                    //cc.log(map[i].movingPunk, x, y)
-                                    this.spawnNewPunk(x * 64, y * 64, map[i].movingPunk);
-                                    this.setMiniMap(x, y, 4);
+                                if (gamemap[i] != 0) {
+                                    //cc.log(x, y)
+                                    this.setGameMap(x, y, gamemap[i]);
+                                    if (minimap[i] == this.id && gamemap[i] == 1 && this.playerInfo.t == this.t) {
+                                        this.leaveButton.interactable = true;
+                                    }
                                 }
-                                if (map[i].monster > 0) {
-                                    //cc.log(map[i].monster/1e18, x, y)
-                                    this.spawnNewChest(x * 64, y * 64);
-                                    this.setMiniMap(x, y, 3);
+                                if (minimap[i] != 0 && !(this.mode == "schedule" && minimap[i] == this.id)) {
+                                    //cc.log(minimap[i].movingPunk, x, y)
+                                    this.spawnNewPunk(x * 64, y * 64, minimap[i], gamemap[i] == 1);
+                                    if (minimap[i] % 2 == 0) {
+                                        this.setMiniMap(x, y, 4);
+                                    }
+                                    else {
+                                        this.setMiniMap(x, y, 5);
+                                    }
+                                    this.validToGo["x" + x + "y" + y] = (gamemap[i] == 1);
+                                }
+                                else {
+                                    this.validToGo["x" + x + "y" + y] = true;
                                 }
                                 i++;
                             }
                         }
-                        this.setMiniMap(this.playerInfo.x, this.playerInfo.y, 5);
+                        this.setMiniMap(this.playerInfo.x, this.playerInfo.y, 6);
                         this.isBusy = false;
-                        return [3 /*break*/, 3];
-                    case 2:
+                        return [3 /*break*/, 4];
+                    case 3:
                         cc.log('isBusy');
-                        _a.label = 3;
-                    case 3: return [2 /*return*/];
-                }
-            });
-        });
-    };
-    Game.prototype.getEvent = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var statusInfo;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        this.goViewMode();
-                        return [4 /*yield*/, this.rogueLandContract.getEvent(this.id)];
-                    case 1:
-                        statusInfo = _a.sent();
-                        if (statusInfo.t > this.eventNumber) {
-                            this.toPick.x = statusInfo.x;
-                            this.toPick.y = statusInfo.y;
-                            this.eventNumber = statusInfo.t;
-                            this.pick();
-                        }
-                        return [2 /*return*/];
-                }
-            });
-        });
-    };
-    Game.prototype.getGoldInfo = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var blockNumber, validBlockToPutGold;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.provider.getBlockNumber()];
-                    case 1:
-                        blockNumber = _a.sent();
-                        return [4 /*yield*/, this.rogueLandContract.validBlockToPutGold()];
-                    case 2:
-                        validBlockToPutGold = _a.sent();
-                        cc.log(validBlockToPutGold, blockNumber);
-                        if (blockNumber >= validBlockToPutGold && validBlockToPutGold > 0 && this.balance > 0) {
-                            this.spawnNewDialog();
-                        }
-                        return [2 /*return*/];
+                        _a.label = 4;
+                    case 4: return [2 /*return*/];
                 }
             });
         });
@@ -704,21 +793,33 @@ var Game = /** @class */ (function (_super) {
                         this.resetMinimap();
                         this.updateMap();
                         if (this.playerInfo.t == this.endRound) {
-                            this.modeButton.interactable = false;
-                            return [2 /*return*/];
+                            //this.modeButton.interactable = false
+                            //return;
                         }
-                        return [4 /*yield*/, this.rogueLandContract.stillPunks(this.id)];
+                        return [4 /*yield*/, this.rogueLandContract.getPunkInfo(this.id)];
                     case 2:
                         myPunk = _a.sent();
-                        this.gold = myPunk.gold;
-                        if (this.gold >= 1000) {
-                            //this.swapButton.interactable = true
+                        this.gold = ethers_umd_min_js_1.ethers.utils.formatEther(myPunk.totalGold);
+                        this.hp = myPunk.hp;
+                        this.hep = cc.sys.localStorage.getItem('hep');
+                        if (myPunk.name == "") {
+                            this.userName = myPunk.player.slice(0, 6);
                         }
+                        else {
+                            this.userName = myPunk.name;
+                        }
+                        this.seed = myPunk.seed.toHexString();
+                        if (this.hep > 0) {
+                            this.useButton.interactable = true;
+                        }
+                        if (Math.abs(statusInfo.x) == 25 || Math.abs(statusInfo.y) == 25) {
+                            //this.leaveButton.interactable = true
+                        }
+                        this.block = myPunk.blockNumber;
                         return [4 /*yield*/, this.wallet.getBalance()];
                     case 3:
                         okt = _a.sent();
-                        this.balance = Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(okt) * 10000);
-                        this.getGoldInfo();
+                        this.balance = Math.floor(ethers_umd_min_js_1.ethers.utils.formatEther(okt) * 10000) / 10000;
                         return [2 /*return*/];
                 }
             });
@@ -733,9 +834,9 @@ var Game = /** @class */ (function (_super) {
                     case 1:
                         statusInfo = _a.sent();
                         this.mode = "schedule";
-                        this.t = statusInfo.t;
+                        this.t = Number(statusInfo.t) + 1;
                         this.currentSchedule = statusInfo.t;
-                        this.player.zIndex = 4;
+                        this.player.zIndex = 3;
                         this.toCommit = statusInfo.t;
                         this.player.x = statusInfo.x * 64;
                         this.player.y = statusInfo.y * 64;
@@ -778,7 +879,7 @@ var Game = /** @class */ (function (_super) {
         var x = this.player.x;
         var y = this.player.y;
         this.setPosition(this.camera, x, y);
-        this.setPosition(this.label.node, x - 250, y + 250);
+        this.setPosition(this.label.node, x, y + 250);
         this.setPosition(this.time_button_group, x, y - 280);
         this.setPosition(this.button_group_2, x + 330, y + 140);
         this.setLabel(this.t, this.getPosition());
@@ -789,55 +890,55 @@ var Game = /** @class */ (function (_super) {
     Game.prototype.click_arrow = function (e, msg) {
         // 任何都会导致punk无法拾取lowb
         // this.pickButton.interactable = false
-        if (this.numberList[this.toCommit - this.currentSchedule] && this.mode == "schedule") {
+        if (this.isBusy) {
             return;
         }
         switch (msg) {
             case "left":
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoLeft);
+                    this.commitMove(this.player.x / 64 - 1, this.player.y / 64, Action.GoLeft);
                 }
                 this.player.getComponent('Player').moveWest();
                 break;
             case "right":
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoRight);
+                    this.commitMove(this.player.x / 64 + 1, this.player.y / 64, Action.GoRight);
                 }
                 this.player.getComponent('Player').moveEast();
                 break;
             case "down":
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoDown);
+                    this.commitMove(this.player.x / 64, this.player.y / 64 - 1, Action.GoDown);
                 }
                 this.player.getComponent('Player').moveSouth();
                 break;
             case "up":
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoUp);
+                    this.commitMove(this.player.x / 64, this.player.y / 64 + 1, Action.GoUp);
                 }
                 this.player.getComponent('Player').moveNorth();
                 break;
             case "left-up":
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoLeftUp);
+                    this.commitMove(this.player.x / 64 - 1, this.player.y / 64 + 1, Action.GoLeftUp);
                 }
                 this.player.getComponent('Player').moveNorthWest();
                 break;
             case "right-down":
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoRightDown);
+                    this.commitMove(this.player.x / 64 + 1, this.player.y / 64 - 1, Action.GoRightDown);
                 }
                 this.player.getComponent('Player').moveSouthEast();
                 break;
             case "right-up":
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoRightUp);
+                    this.commitMove(this.player.x / 64 + 1, this.player.y / 64 + 1, Action.GoRightUp);
                 }
                 this.player.getComponent('Player').moveNorthEast();
                 break;
             case "left-down":
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoLeftDown);
+                    this.commitMove(this.player.x / 64 - 1, this.player.y / 64 - 1, Action.GoLeftDown);
                 }
                 this.player.getComponent('Player').moveSouthWest();
                 break;
@@ -860,14 +961,14 @@ var Game = /** @class */ (function (_super) {
     Game.prototype.onKeyDown = function (event) {
         // 任何都会导致punk无法拾取lowb
         // this.pickButton.interactable = false
-        if (this.numberList[this.toCommit - this.currentSchedule] && this.mode == "schedule") {
+        if (this.isBusy) {
             return;
         }
         switch (event.keyCode) {
             case cc.macro.KEY.h:
             case cc.macro.KEY.left:
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoLeft);
+                    this.commitMove(this.player.x / 64 - 1, this.player.y / 64, Action.GoLeft);
                 }
                 else {
                     this.updateMap();
@@ -877,7 +978,7 @@ var Game = /** @class */ (function (_super) {
             case cc.macro.KEY.l:
             case cc.macro.KEY.right:
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoRight);
+                    this.commitMove(this.player.x / 64 + 1, this.player.y / 64, Action.GoRight);
                 }
                 else {
                     this.updateMap();
@@ -887,7 +988,7 @@ var Game = /** @class */ (function (_super) {
             case cc.macro.KEY.k:
             case cc.macro.KEY.down:
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoDown);
+                    this.commitMove(this.player.x / 64, this.player.y / 64 - 1, Action.GoDown);
                 }
                 else {
                     this.updateMap();
@@ -897,7 +998,7 @@ var Game = /** @class */ (function (_super) {
             case cc.macro.KEY.j:
             case cc.macro.KEY.up:
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoUp);
+                    this.commitMove(this.player.x / 64, this.player.y / 64 + 1, Action.GoUp);
                 }
                 else {
                     this.updateMap();
@@ -906,7 +1007,7 @@ var Game = /** @class */ (function (_super) {
                 break;
             case cc.macro.KEY.y:
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoLeftUp);
+                    this.commitMove(this.player.x / 64 - 1, this.player.y / 64 + 1, Action.GoLeftUp);
                 }
                 else {
                     this.updateMap();
@@ -915,7 +1016,7 @@ var Game = /** @class */ (function (_super) {
                 break;
             case cc.macro.KEY.n:
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoRightDown);
+                    this.commitMove(this.player.x / 64 + 1, this.player.y / 64 - 1, Action.GoRightDown);
                 }
                 else {
                     this.updateMap();
@@ -924,7 +1025,7 @@ var Game = /** @class */ (function (_super) {
                 break;
             case cc.macro.KEY.u:
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoRightUp);
+                    this.commitMove(this.player.x / 64 + 1, this.player.y / 64 + 1, Action.GoRightUp);
                 }
                 else {
                     this.updateMap();
@@ -933,7 +1034,7 @@ var Game = /** @class */ (function (_super) {
                 break;
             case cc.macro.KEY.b:
                 if (this.mode == "schedule") {
-                    this.spawnNewNumber(this.player.x, this.player.y, Action.GoLeftDown);
+                    this.commitMove(this.player.x / 64 - 1, this.player.y / 64 - 1, Action.GoLeftDown);
                 }
                 else {
                     this.updateMap();
@@ -965,7 +1066,38 @@ var Game = /** @class */ (function (_super) {
     };
     Game.prototype.onTouchEnd = function (t) {
         if (this.mode == "view") {
-            this.updateMap();
+            var deltaX = t.getLocation().x - t.getStartLocation().x;
+            var deltaY = t.getLocation().y - t.getStartLocation().y;
+            //cc.log(deltaX, deltaY)
+            if (Math.abs(deltaX) > 64 || Math.abs(deltaY) > 64) {
+                this.updateMap();
+            }
+            else {
+                //const center = this.getPosition()
+                var windowSize = cc.view.getVisibleSize();
+                cc.log("width=" + windowSize.width + ",height=" + windowSize.height);
+                this.landPos.x = Math.round((t.getLocation().x + this.player.x - windowSize.width / 2) / 64);
+                this.landPos.y = Math.round((t.getLocation().y + this.player.y - windowSize.height / 2) / 64);
+                this.spawnNewLandInfo();
+                cc.log(Math.floor(t.getLocation().x / 64), Math.floor(t.getLocation().y / 64));
+            }
+        }
+    };
+    Game.prototype.setGameMap = function (x_, y_, kind) {
+        var gid = 0;
+        if (kind == 0) {
+            gid = 8;
+        }
+        else if (kind == 1) {
+            gid = 9;
+        }
+        else {
+            gid = kind - 1;
+        }
+        var x = x_ + 24;
+        var y = y_ + 24;
+        if (x >= 0 && x <= 48 && y >= 0 && y <= 48) {
+            this.gameLayer.setTileGIDAt(gid, x, 48 - y, 0);
         }
     };
     Game.prototype.setMiniMap = function (x_, y_, gid_) {
@@ -977,14 +1109,13 @@ var Game = /** @class */ (function (_super) {
         }
     };
     Game.prototype.onLoad = function () {
-        this.label.node.zIndex = 3;
-        this.time_button_group.zIndex = 3;
-        this.button_group_2.zIndex = 3;
-        //this.pickButton.interactable = false
-        this.swapButton.interactable = false;
+        this.label.node.zIndex = 5;
+        this.time_button_group.zIndex = 5;
+        this.button_group_2.zIndex = 5;
+        this.gameMap.node.zIndex = 2;
+        this.leaveButton.interactable = false;
+        this.useButton.interactable = false;
         // 生成草地
-        //let windowSize=cc.view.getVisibleSize();
-        //cc.log("width="+windowSize.width+",height="+windowSize.height);
         for (var i = -9; i <= 9; i++) {
             for (var j = -6; j <= 6; j++) {
                 this.spawnNewGrass(i * 64, j * 64);
@@ -994,12 +1125,14 @@ var Game = /** @class */ (function (_super) {
             this.spawnTimeButton(64 * i, 0, i + 2);
         }
         this.tiledLayer = this.smallMap.getLayer("background");
+        this.gameLayer = this.gameMap.getLayer("game_map");
         // 初始化键盘输入监听
         cc.systemEvent.on(cc.SystemEvent.EventType.KEY_DOWN, this.onKeyDown, this);
     };
     Game.prototype.start = function () {
         // init logic
-        this.label.string = this.text;
+        var lang = cc.sys.localStorage.getItem('lang');
+        this.messageLabel.string = (lang === 'zh' ? '游戏消息\n' : 'Game Message\n');
         this.loadPunk();
         this.getStatus();
     };
@@ -1010,14 +1143,23 @@ var Game = /** @class */ (function (_super) {
         property(cc.Label)
     ], Game.prototype, "switchLabel", void 0);
     __decorate([
+        property(cc.Label)
+    ], Game.prototype, "messageLabel", void 0);
+    __decorate([
         property(cc.Button)
     ], Game.prototype, "modeButton", void 0);
     __decorate([
         property(cc.Button)
-    ], Game.prototype, "swapButton", void 0);
+    ], Game.prototype, "leaveButton", void 0);
+    __decorate([
+        property(cc.Button)
+    ], Game.prototype, "useButton", void 0);
     __decorate([
         property(cc.TiledMap)
     ], Game.prototype, "smallMap", void 0);
+    __decorate([
+        property(cc.TiledMap)
+    ], Game.prototype, "gameMap", void 0);
     __decorate([
         property
     ], Game.prototype, "text", void 0);
@@ -1038,7 +1180,16 @@ var Game = /** @class */ (function (_super) {
     ], Game.prototype, "punkPrefab", void 0);
     __decorate([
         property(cc.Prefab)
-    ], Game.prototype, "putGoldPrefab", void 0);
+    ], Game.prototype, "redStarPrefab", void 0);
+    __decorate([
+        property(cc.Prefab)
+    ], Game.prototype, "blueStarPrefab", void 0);
+    __decorate([
+        property(cc.Prefab)
+    ], Game.prototype, "circlePrefab", void 0);
+    __decorate([
+        property(cc.Prefab)
+    ], Game.prototype, "diePrefab", void 0);
     __decorate([
         property(cc.Prefab)
     ], Game.prototype, "punkInfoPrefab", void 0);
@@ -1047,13 +1198,16 @@ var Game = /** @class */ (function (_super) {
     ], Game.prototype, "goldInfoPrefab", void 0);
     __decorate([
         property(cc.JsonAsset)
-    ], Game.prototype, "registerJson", void 0);
-    __decorate([
-        property(cc.JsonAsset)
     ], Game.prototype, "rogueLandJson", void 0);
     __decorate([
         property(cc.JsonAsset)
+    ], Game.prototype, "buildingJson", void 0);
+    __decorate([
+        property(cc.JsonAsset)
     ], Game.prototype, "loserpunkJson", void 0);
+    __decorate([
+        property(cc.JsonAsset)
+    ], Game.prototype, "landJson", void 0);
     __decorate([
         property(cc.Node)
     ], Game.prototype, "player", void 0);

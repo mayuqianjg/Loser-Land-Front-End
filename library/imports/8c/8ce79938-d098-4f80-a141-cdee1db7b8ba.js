@@ -60,6 +60,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var _a = cc._decorator, ccclass = _a.ccclass, property = _a.property;
+var ethers_umd_min_js_1 = require("ethers/dist/ethers.umd.min.js");
 var Rank = /** @class */ (function (_super) {
     __extends(Rank, _super);
     function Rank() {
@@ -78,30 +79,50 @@ var Rank = /** @class */ (function (_super) {
     };
     Rank.prototype.setGolds = function (golds) {
         return __awaiter(this, void 0, void 0, function () {
-            var unsortGolds, i, i, name;
+            var unsortGolds, invalid, i, temp, i, name;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         unsortGolds = [];
-                        for (i = 0; i < 667; i++) {
-                            unsortGolds.push({ id: i, gold: Number(golds[i]) });
-                        }
+                        return [4 /*yield*/, ethers_umd_min_js_1.ethers.utils.formatEther(golds[14])
+                            //cc.log(invalid)
+                        ];
+                    case 1:
+                        invalid = _a.sent();
+                        i = 1;
+                        _a.label = 2;
+                    case 2:
+                        if (!(i < 667)) return [3 /*break*/, 5];
+                        return [4 /*yield*/, ethers_umd_min_js_1.ethers.utils.formatEther(golds[i])
+                            //if (Number(temp) < Number(invalid)) {
+                        ];
+                    case 3:
+                        temp = _a.sent();
+                        //if (Number(temp) < Number(invalid)) {
+                        unsortGolds.push({ id: i, gold: temp });
+                        _a.label = 4;
+                    case 4:
+                        i++;
+                        return [3 /*break*/, 2];
+                    case 5:
                         this.sortGolds = unsortGolds.sort(function (a, b) { return b.gold - a.gold; });
                         this.setLabel();
                         i = 0;
-                        _a.label = 1;
-                    case 1:
-                        if (!(i < 5)) return [3 /*break*/, 4];
+                        _a.label = 6;
+                    case 6:
+                        if (!(i < 5)) return [3 /*break*/, 9];
                         return [4 /*yield*/, this.welcome.getPunkInfo(this.sortGolds[i].id + 1)];
-                    case 2:
+                    case 7:
                         name = _a.sent();
-                        this.names[i] = name;
+                        this.names[i] = name.toString().substr(0, 7);
+                        //let k = name.toString() + 'abc'
+                        //cc.log(this.sortGolds[i].id+1, this.sortGolds[i].gold, k.substr(0,5))
                         this.setLabel();
-                        _a.label = 3;
-                    case 3:
+                        _a.label = 8;
+                    case 8:
                         i++;
-                        return [3 /*break*/, 1];
-                    case 4: return [2 /*return*/];
+                        return [3 /*break*/, 6];
+                    case 9: return [2 /*return*/];
                 }
             });
         });
